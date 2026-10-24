@@ -1,22 +1,22 @@
 # FreeVoiceTranscribe
 
-[![Build & Release (macOS & Windows)](https://github.com/vkop007/SiriVoiceTranscribe/actions/workflows/release.yml/badge.svg)](https://github.com/vkop007/SiriVoiceTranscribe/actions/workflows/release.yml)
-[![Latest Release](https://img.shields.io/github/v/release/vkop007/SiriVoiceTranscribe?label=Download%20Latest%20Build&color=blue)](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest)
+[![Build & Release (macOS & Windows)](https://github.com/vkop007/FreeVoiceTranscribe/actions/workflows/release.yml/badge.svg)](https://github.com/vkop007/FreeVoiceTranscribe/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/vkop007/FreeVoiceTranscribe?label=Download%20Latest%20Build&color=blue)](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest)
 
 FreeVoiceTranscribe is a cross-platform (macOS menu bar & Windows system tray) voice transcription and dictation tool. Hold a global shortcut, speak, and the transcript is pasted into the text field that currently has focus. It also supports free on-device text cleanup and spoken edits to selected text using Apple's on-device models on macOS and Windows Copilot Runtime (Phi Silica) / built-in Windows AI on Windows.
 
 ## Download Prebuilt Releases
 
-Download the latest prebuilt binaries directly from [GitHub Releases](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest):
+Download the latest prebuilt binaries directly from [GitHub Releases](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest):
 
 | Platform | Architecture | Direct Download | Package Type |
 | :--- | :--- | :--- | :--- |
-| **macOS** | Apple Silicon & Intel | [**FreeVoiceTranscribe-macOS.dmg**](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-macOS.dmg) | macOS Disk Image installer (`FreeVoiceTranscribe.app`) |
-| **macOS** | Apple Silicon & Intel | [**FreeVoiceTranscribe-macOS.zip**](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-macOS.zip) | Portable `.app` bundle archive |
-| **Windows** | 64-bit (`x86_64`) | [**FreeVoiceTranscribe-Windows-x64.zip**](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-x64.zip) | Full bundle (`FreeVoiceTranscribe.exe` + `copilot_bridge.ps1` + optional `libenhance.dll`) |
-| **Windows** | 64-bit (`x86_64`) | [**FreeVoiceTranscribe-Windows-x64.exe**](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-x64.exe) | Standalone Windows x64 executable |
-| **Windows** | ARM64 (Copilot+ PCs) | [**FreeVoiceTranscribe-Windows-arm64.zip**](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-arm64.zip) | Full bundle for Windows on ARM / Copilot+ PCs |
-| **Windows** | ARM64 (Copilot+ PCs) | [**FreeVoiceTranscribe-Windows-arm64.exe**](https://github.com/vkop007/SiriVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-arm64.exe) | Standalone Windows ARM64 executable |
+| **macOS** | Apple Silicon & Intel | [**FreeVoiceTranscribe-macOS.dmg**](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-macOS.dmg) | macOS Disk Image installer (`FreeVoiceTranscribe.app`) |
+| **macOS** | Apple Silicon & Intel | [**FreeVoiceTranscribe-macOS.zip**](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-macOS.zip) | Portable `.app` bundle archive |
+| **Windows** | 64-bit (`x86_64`) | [**FreeVoiceTranscribe-Windows-x64.zip**](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-x64.zip) | Full bundle (`FreeVoiceTranscribe.exe` + `copilot_bridge.ps1` + optional `libenhance.dll`) |
+| **Windows** | 64-bit (`x86_64`) | [**FreeVoiceTranscribe-Windows-x64.exe**](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-x64.exe) | Standalone Windows x64 executable |
+| **Windows** | ARM64 (Copilot+ PCs) | [**FreeVoiceTranscribe-Windows-arm64.zip**](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-arm64.zip) | Full bundle for Windows on ARM / Copilot+ PCs |
+| **Windows** | ARM64 (Copilot+ PCs) | [**FreeVoiceTranscribe-Windows-arm64.exe**](https://github.com/vkop007/FreeVoiceTranscribe/releases/latest/download/FreeVoiceTranscribe-Windows-arm64.exe) | Standalone Windows ARM64 executable |
 
 ## Features
 
