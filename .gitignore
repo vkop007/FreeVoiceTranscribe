@@ -1,0 +1,10 @@
+# macOS metadata
+.DS_Store
+
+# Zig build cache and install output
+.zig-cache/
+zig-out/
+
+# macOS debug and packaging artifacts
+*.dSYM/
+*.app/

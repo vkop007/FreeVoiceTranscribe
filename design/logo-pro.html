@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dictate — Mark Study</title>
+<meta name="color-scheme" content="dark">
+<style>
+:root{
+  --bg:#050507;
+  --ink:#f5f5f7;
+  --ink-2:rgba(245,245,247,.70);
+  --ink-3:rgba(245,245,247,.58);
+  --line:rgba(255,255,255,.09);
+  --violet:#7c5cff; --cyan:#00d4ff; --magenta:#ff5ca8; --amber:#ffb454;
+  --sans:-apple-system,"SF Pro Display","Inter",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans);color:var(--ink);background:
+    radial-gradient(60% 50% at 50% 18%,rgba(94,70,220,.16),transparent 70%),
+    radial-gradient(120% 80% at 50% 50%,transparent 55%,rgba(0,0,0,.55) 100%),
+    var(--bg);
+  min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;line-height:1.5;
+}
+body::after{ /* grain */
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.05;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.1 -.2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+a,button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:8px}
+
+/* ---------- orb primitive ---------- */
+.orb{position:relative;flex:none;display:block}
+.orb canvas{position:absolute;pointer-events:none;display:block}
+
+/* ---------- hero ---------- */
+.top{display:flex;justify-content:space-between;padding:22px 0}
+.hero{position:relative;text-align:center;padding:28px 0 8px;overflow:hidden}
+.hero .orb{width:min(320px,76vw);height:min(320px,76vw);margin:44px auto 0}
+h1{
+  font-size:clamp(60px,10vw,120px);font-weight:600;letter-spacing:-.055em;line-height:1;margin-top:34px;
+  background:linear-gradient(180deg,#fff 20%,rgba(255,255,255,.62));-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.tag{margin-top:14px;font-size:clamp(17px,2.2vw,21px);letter-spacing:-.015em;color:var(--ink-2)}
+.seg{
+  position:relative;display:grid;grid-template-columns:repeat(4,1fr);width:min(460px,100%);margin:38px auto 0;padding:4px;
+  border-radius:14px;background:rgba(255,255,255,.045);border:1px solid var(--line);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+.seg .thumb{
+  position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/4);border-radius:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.17),rgba(255,255,255,.08));
+  box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 4px 14px rgba(0,0,0,.45);
+  transform:translateX(calc(var(--i,3)*100%));transition:transform .5s var(--ease);
+}
+.seg button{
+  position:relative;z-index:1;background:none;border:0;padding:10px 4px;font-size:13px;font-weight:500;letter-spacing:-.005em;
+  color:var(--ink-2);cursor:pointer;border-radius:10px;transition:color .25s;
+}
+.seg button:hover{color:#fff}
+.seg button[aria-checked="true"]{color:#fff}
+.seg button:active{transform:scale(.97)}
+.readout{display:flex;gap:18px;justify-content:center;align-items:center;margin-top:20px}
+.readout b{font-weight:500;color:var(--ink)}
+.meter{width:96px;height:3px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.meter i{display:block;height:100%;width:100%;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,var(--violet),var(--cyan),var(--magenta));border-radius:2px}
+.in{opacity:0;transform:translateY(10px);animation:in .9s var(--ease) forwards}
+@keyframes in{to{opacity:1;transform:none}}
+
+/* ---------- sections ---------- */
+section.block{padding:56px 0 0}
+.sec-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px 32px;margin-bottom:28px;padding-top:20px;border-top:1px solid var(--line)}
+.sec-h h2{font-size:clamp(26px,3.6vw,38px);font-weight:600;letter-spacing:-.04em;line-height:1.1}
+.sec-h p{max-width:380px;color:var(--ink-2);font-size:15px}
+
+/* ---------- desktop mock ---------- */
+.desk{
+  position:relative;height:clamp(460px,56vw,640px);border-radius:16px;overflow:hidden;border:1px solid var(--line);
+  background:
+    radial-gradient(70% 90% at 18% 8%,#4a35b8 0%,transparent 62%),
+    radial-gradient(60% 80% at 92% 95%,#0b6c9c 0%,transparent 62%),
+    radial-gradient(50% 60% at 72% 18%,rgba(190,50,130,.55),transparent 65%),
+    #0b0b1f;
+  box-shadow:0 40px 80px -30px rgba(0,0,0,.8);
+}
+.menubar{position:absolute;inset:0 0 auto 0;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;
+  background:rgba(8,8,18,.42);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);font-size:12.5px;color:#fff;z-index:3}
+.menubar div{display:flex;align-items:center;gap:18px}
+.menubar .app{font-weight:650}
+.menubar .orb{width:18px;height:18px}
+.batt{width:22px;height:10px;border:1px solid rgba(255,255,255,.75);border-radius:3px;position:relative;margin-right:2px}
+.batt::before{content:"";position:absolute;inset:1px 5px 1px 1px;background:#fff;border-radius:1px}
+.batt::after{content:"";position:absolute;right:-3px;top:2px;width:2px;height:4px;background:rgba(255,255,255,.75);border-radius:0 1px 1px 0}
+.win{
+  position:absolute;left:50%;top:58px;bottom:112px;display:flex;flex-direction:column;width:min(660px,calc(100% - 32px));transform:translateX(-50%);
+  background:#1b1b22;border-radius:12px;border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 30px 70px -10px rgba(0,0,0,.65),0 0 0 .5px rgba(0,0,0,.6);overflow:hidden;
+}
+.win header{display:flex;align-items:center;height:40px;padding:0 14px;background:#23232b;border-bottom:1px solid rgba(255,255,255,.06)}
+.dots{display:flex;gap:8px;width:60px}
+.dots i{width:12px;height:12px;border-radius:50%;background:#ff5f57}
+.dots i:nth-child(2){background:#febc2e}.dots i:nth-child(3){background:#28c840}
+.win header span{flex:1;text-align:center;font-size:13px;color:var(--ink-2);font-weight:500;padding-right:60px}
+.doc{flex:1;min-height:0;overflow:hidden;padding:26px 32px 16px;font-size:15.5px;line-height:1.7;color:#d6d6de;cursor:default;user-select:none;-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 28px),transparent)}
+.doc h3{font-size:24px;letter-spacing:-.03em;color:#fff;margin-bottom:10px;font-weight:650}
+.doc p{margin-bottom:12px}
+.doc p.new{animation:in .7s var(--ease) both;color:#fff}
+.doc .caret{display:inline-block;width:2px;height:1.1em;vertical-align:-.2em;background:var(--cyan);margin-left:2px;animation:blink 1.1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.pill{
+  position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:4;
+  display:flex;align-items:center;padding:7px;border-radius:999px;
+  background:rgba(14,14,22,.74);backdrop-filter:blur(32px) saturate(1.8);-webkit-backdrop-filter:blur(32px) saturate(1.8);
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 40px -8px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.14) inset,0 0 0 .5px rgba(0,0,0,.5);
+}
+.pill .orb{width:34px;height:34px}
+.cap{overflow:hidden;white-space:nowrap;width:0}
+.cap.clip{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 22px);mask-image:linear-gradient(90deg,transparent 0,#000 22px)}
+.cap-in{display:inline-block;font-size:15px;font-weight:500;letter-spacing:-.012em;color:#fff;padding:0 10px 0 0;line-height:34px}
+.cap-in.shim{
+  background:linear-gradient(100deg,rgba(255,255,255,.62) 30%,#fff 50%,rgba(255,255,255,.62) 70%) 0 0/250% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 1.6s linear infinite;
+}
+@keyframes shim{from{background-position:100% 0}to{background-position:-100% 0}}
+
+/* ---------- scale row ---------- */
+.scale{display:grid;grid-template-columns:1.25fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.scale>div{background:#09090d;padding:36px 32px 26px}
+.row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:30px 34px}
+.row.marks{flex-wrap:nowrap;justify-content:space-between;max-width:420px}
+.row.marks .item{align-items:center}
+.item{display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.item .stage{display:flex;align-items:center;justify-content:center}
+.sz128 .orb{width:128px;height:128px}.sz64 .orb{width:64px;height:64px}.sz32 .orb{width:32px;height:32px}.sz16 .orb{width:16px;height:16px}
+.tile{
+  width:128px;height:128px;border-radius:28.5%;position:relative;display:grid;place-items:center;
+  background:radial-gradient(120% 90% at 30% 0%,#2a2a3a 0%,#12121a 55%,#0a0a10 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.22) inset,0 0 0 1px rgba(255,255,255,.07) inset,0 -18px 30px -12px rgba(124,92,255,.22) inset,0 22px 40px -10px rgba(0,0,0,.8),0 0 0 .5px #000;
+}
+.tile .orb{width:78px;height:78px}
+.tile::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent 38%);pointer-events:none}
+.mbar{display:flex;align-items:center;justify-content:flex-end;gap:14px;width:190px;height:30px;padding:0 12px;border-radius:8px}
+.mbar.dark{background:#1a1a22;color:#fff}.mbar.light{background:#e9e9ee;color:#111}
+.mbar .orb{width:18px;height:18px}
+.mbar span{font-size:12px;font-weight:500;margin-right:auto}
+.mbar .batt{border-color:currentColor}.mbar .batt::before{background:currentColor}.mbar .batt::after{background:currentColor}
+
+/* ---------- footer ---------- */
+footer{padding:72px 0 64px}
+.foot{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr);gap:48px}
+.sw{list-style:none;display:grid;gap:10px;margin-top:16px}
+.sw li{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.sw i{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.16);box-shadow:0 1px 0 rgba(255,255,255,.25) inset}
+.sw b{color:var(--ink);font-weight:500;min-width:76px}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:500;text-align:left;padding:0 12px 10px 0;border-bottom:1px solid var(--line)}
+td{padding:10px 12px 10px 0;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top}
+td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+td code{font-family:var(--mono);font-size:12px;color:#c7bfff}
+.fine{margin-top:44px;color:var(--ink-3);font-size:12px}
+
+@media (max-width:820px){
+  .scale,.foot{grid-template-columns:1fr}
+  .scale>div{padding:28px 22px 22px}
+  .wrap{padding:0 20px}
+}
+@media (max-width:560px){
+  .menubar .hide-s{display:none}
+  .top span:last-child{display:none}
+  .desk{height:600px}
+  .doc{padding:20px 20px 16px;font-size:14.5px}
+  .sz128 .orb{width:96px;height:96px}
+  .row.marks{gap:12px}
+  .seg button{font-size:12px;padding:10px 0}
+  .readout{gap:12px;flex-wrap:wrap}
+  .tbl-wrap{overflow-x:auto}
+  .row{gap:26px}
+}
+@media (prefers-reduced-motion:reduce){
+  .in{animation:none;opacity:1;transform:none}
+  .cap-in.shim,.caret{animation:none}
+  .seg .thumb{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top mono"><span>Dictate / Mark study 01</span><span>Liquid light on black glass</span></div>
+
+  <main>
+  <section class="hero" aria-label="Logo">
+    <div class="orb in" id="heroOrb" data-bloom="1" data-ripples="1" role="img" aria-label="Dictate logo: an aurora orb with a five-bar voice waveform"><canvas></canvas></div>
+    <h1 class="in" style="animation-delay:.12s">Dictate</h1>
+    <p class="tag in" style="animation-delay:.2s">Your voice, set in type, anywhere on your Mac.</p>
+    <div class="seg in" id="seg" role="radiogroup" aria-label="Orb state" style="animation-delay:.28s">
+      <span class="thumb" aria-hidden="true"></span>
+      <button role="radio" aria-checked="false" data-s="idle" tabindex="-1">Idle</button>
+      <button role="radio" aria-checked="false" data-s="listen" tabindex="-1">Listening</button>
+      <button role="radio" aria-checked="false" data-s="trans" tabindex="-1">Transcribing</button>
+      <button role="radio" aria-checked="true" data-s="auto" tabindex="0">Auto-demo</button>
+    </div>
+    <div class="readout mono in" style="animation-delay:.34s" aria-live="off">
+      <span>State <b id="roState">Idle</b></span>
+      <span style="display:flex;align-items:center;gap:10px">Level <span class="meter"><i id="roMeter"></i></span></span>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-ctx">
+    <div class="sec-h"><h2 id="h-ctx">In context</h2><p>The floating pill and menu bar icon follow the same state as the hero. Text types while listening and settles while transcribing.</p></div>
+    <div class="desk">
+      <div class="menubar">
+        <div><span class="app">Dictate</span><span class="hide-s">File</span><span class="hide-s">Edit</span><span class="hide-s">View</span><span class="hide-s">Window</span></div>
+        <div><span class="orb" id="menuOrb" data-mono="#ffffff" style="display:block;width:18px;height:18px" aria-label="Dictate menu bar icon" role="img"><canvas></canvas></span><span class="batt hide-s"></span><span>Tue 9:41 AM</span></div>
+      </div>
+      <article class="win" aria-label="Text editor mock">
+        <header><div class="dots"><i></i><i></i><i></i></div><span>launch-notes.md</span></header>
+        <div class="doc" id="doc">
+          <h3>Q3 launch notes</h3>
+          <p>Beta feedback is in. Most requests are about speed: people want text on screen the instant they stop talking.</p>
+          <p>Open items from Monday&rsquo;s sync are listed below.</p>
+          <div id="added"></div>
+          <span class="caret" id="caret" hidden></span>
+        </div>
+      </article>
+      <div class="pill" id="pill" aria-live="polite">
+        <div class="orb" id="pillOrb" data-bloom="1" data-ripples="0"><canvas></canvas></div>
+        <div class="cap" id="cap"><span class="cap-in" id="capIn"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-scale">
+    <div class="sec-h"><h2 id="h-scale">Scale &amp; system</h2><p>Five bars hold up at 16 px. Small sizes thicken the glyph and drop the bloom so edges stay crisp.</p></div>
+    <div class="scale">
+      <div>
+        <p class="mono" style="margin-bottom:26px">Mark / 128 &middot; 64 &middot; 32 &middot; 16</p>
+        <div class="row marks">
+          <div class="item sz128"><div class="stage"><span class="orb" data-static="1" data-bloom="1" data-ripples="0"><canvas></canvas></span></div><span class="mono">128</span></div>
+          <div class="item sz64"><div class="stage"><span class="orb" data-static="1" data-bloom="1" data-ripples="0"><canvas></canvas></span></div><span class="mono">64</span></div>
+          <div class="item sz32"><div class="stage"><span class="orb" data-static="1"><canvas></canvas></span></div><span class="mono">32</span></div>
+          <div class="item sz16"><div class="stage"><span class="orb" data-static="1"><canvas></canvas></span></div><span class="mono">16</span></div>
+        </div>
+      </div>
+      <div>
+        <p class="mono" style="margin-bottom:26px">App icon &middot; Menu bar template</p>
+        <div class="row">
+          <div class="item"><div class="tile"><span class="orb" data-bloom="1"><canvas></canvas></span></div><span class="mono">App icon</span></div>
+          <div class="item" style="gap:22px">
+            <div class="mbar dark"><span>Dark</span><span class="orb" data-mono="#ffffff"><canvas></canvas></span><span class="batt"></span></div>
+            <div class="mbar light"><span>Light</span><span class="orb" data-mono="#111114"><canvas></canvas></span><span class="batt"></span></div>
+            <span class="mono">Template, 18 px</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer>
+    <div class="foot">
+      <div>
+        <p class="mono">Palette</p>
+        <ul class="sw">
+          <li><i style="background:#050507"></i><b>Black glass</b>#050507</li>
+          <li><i style="background:#7c5cff"></i><b>Violet</b>#7C5CFF</li>
+          <li><i style="background:#00d4ff"></i><b>Cyan</b>#00D4FF</li>
+          <li><i style="background:#ff5ca8"></i><b>Magenta</b>#FF5CA8</li>
+          <li><i style="background:#ffb454"></i><b>Amber</b>#FFB454</li>
+          <li><i style="background:#f5f5f7"></i><b>Glyph</b>#F5F5F7</li>
+        </ul>
+      </div>
+      <div class="tbl-wrap">
+        <p class="mono">Motion spec</p>
+        <table>
+          <thead><tr><th>Layer</th><th>Timing</th><th>Easing / model</th></tr></thead>
+          <tbody>
+            <tr><td>State blend</td><td>&tau; 160 ms</td><td>Exponential approach on 3 weights (idle, listen, transcribe) that always sum to 1</td></tr>
+            <tr><td>Breathing</td><td>6 s period</td><td>Sine, scale &plusmn;1.6%</td></tr>
+            <tr><td>Blob drift</td><td>0.35&times; / 1.1&ndash;2.4&times; / 0.85&times;</td><td>Idle / listening (level driven) / transcribing speed on one accumulated clock</td></tr>
+            <tr><td>Level</td><td>attack 50 ms, release 160 ms</td><td>Smoothed noise gated by a speech-like envelope; swells blob radius up to 45%</td></tr>
+            <tr><td>Ripples</td><td>1.8 s, 3 rings</td><td>Radius 1.02&ndash;1.5 r, alpha (1 &minus; p)<sup>1.6</sup></td></tr>
+            <tr><td>Bars &rarr; dots</td><td>via state blend</td><td>Height, width and alpha lerped; outer bars collapse, 3 dots run a sine wave</td></tr>
+            <tr><td>Rim arc</td><td>1.65 s / rev</td><td>Linear, 63&deg; tail with alpha falloff</td></tr>
+            <tr><td>Pill width</td><td>&tau; 120 ms</td><td>Exponential approach; text types at 55 ms per character</td></tr>
+            <tr><td>Auto-demo</td><td>3.0 / 5.2 / 3.4 s</td><td>Idle, listening, transcribing, then loop</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="fine">Reduced motion: orb drifts at a fifth of the speed, ripples, arc and typing are off, and auto-demo starts paused.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+const TAU = Math.PI * 2;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const rmq = matchMedia("(prefers-reduced-motion: reduce)");
+let RM = rmq.matches; rmq.addEventListener("change", e => RM = e.matches);
+
+/* ---------- global state model ---------- */
+const G = { w: { idle: 1, listen: 0, trans: 0 }, T: 0, RT: 0, arc: 0, amp: .03, t: 0 };
+const NAMES = { idle: "Idle", listen: "Listening", trans: "Transcribing" };
+const SEQ = [["idle", 3000], ["listen", 5200], ["trans", 3400]];
+let mode = RM ? "idle" : "auto", cur = "idle", seqI = 0, seqT = 0;
+
+/* ---------- blobs ---------- */
+const BLOBS = [
+  { c: [124, 92, 255], r: .62, d: .30, w: .55, p: 0.0, v: .9, a: 1 },
+  { c: [0, 212, 255], r: .55, d: .36, w: -.7, p: 2.1, v: 1.3, a: .9 },
+  { c: [255, 92, 168], r: .50, d: .34, w: .85, p: 4.0, v: .7, a: .88 },
+  { c: [255, 170, 84], r: .32, d: .44, w: -1.0, p: 5.2, v: 1.7, a: .5 },
+  { c: [74, 48, 214], r: .72, d: .18, w: .3, p: 1.0, v: .5, a: .95 },
+  { c: [0, 160, 255], r: .40, d: .30, w: 1.1, p: 3.3, v: 1.1, a: .65 },
+];
+
+/* ---------- grain tile for dithering ---------- */
+const grain = document.createElement("canvas"); grain.width = grain.height = 128;
+{ const g = grain.getContext("2d"), im = g.createImageData(128, 128);
+  for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+  g.putImageData(im, 0, 0); }
+
+/* ---------- instances ---------- */
+const insts = [];
+document.querySelectorAll(".orb").forEach(el => {
+  const cv = el.querySelector("canvas");
+  const inst = { el, cv, ctx: cv.getContext("2d"), D: 0, dpr: 0, vis: true,
+    mono: el.dataset.mono || null, bloom: el.dataset.bloom === "1", ripples: el.dataset.ripples === "1", fixed: el.dataset.static === "1" };
+  insts.push(inst);
+});
+if ("IntersectionObserver" in window) {
+  const io = new IntersectionObserver(es => es.forEach(e => { const i = insts.find(x => x.el === e.target); if (i) i.vis = e.isIntersecting; }), { rootMargin: "120px" });
+  insts.forEach(i => io.observe(i.el));
+}
+
+function size(inst) {
+  const D = inst.el.clientWidth, dpr = window.devicePixelRatio || 1;
+  if (!D) return false;
+  if (D !== inst.D || dpr !== inst.dpr) {
+    inst.D = D; inst.dpr = dpr;
+    inst.pad = Math.max(8, Math.round(D * (inst.bloom ? .5 : .3)));
+    const S = D + inst.pad * 2, s = inst.cv.style;
+    s.width = s.height = S + "px"; s.left = s.top = -inst.pad + "px";
+    inst.cv.width = inst.cv.height = Math.round(S * dpr);
+  }
+  return true;
+}
+
+/* ---------- draw ---------- */
+function draw(inst) {
+  if (!inst.vis || !size(inst)) return;
+  const { ctx, D, pad, dpr } = inst, S = D + pad * 2, cx = S / 2, cy = S / 2;
+  const w = G.w, T = G.T, amp = G.amp, la = w.listen * amp;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, S, S);
+  const breath = RM ? 0 : Math.sin(G.t * TAU / 6);
+  const sc = 1 + .016 * breath * (.4 + .6 * w.idle) + la * .045;
+  const r = D / 2 * sc;
+  const big = D >= 48;
+
+  if (inst.mono) { drawMono(inst, cx, cy, r, D); return; }
+
+  /* bloom */
+  if (inst.bloom) {
+    const k = .17 + .30 * la + .05 * w.trans + .03 * breath;
+    const ox = Math.cos(T * .4) * r * .22, oy = Math.sin(T * .33) * r * .18;
+    ctx.save(); ctx.globalCompositeOperation = "screen";
+    [[124, 92, 255, 1, -ox, -oy + r * .1], [0, 212, 255, .75, ox, oy - r * .05]].forEach(([R, G2, B, m, x, y]) => {
+      const g = ctx.createRadialGradient(cx + x, cy + y, r * .7, cx + x, cy + y, r * 1.58);
+      g.addColorStop(0, `rgba(${R},${G2},${B},${k * m})`);
+      g.addColorStop(.35, `rgba(${R},${G2},${B},${k * m * .42})`);
+      g.addColorStop(.7, `rgba(${R},${G2},${B},${k * m * .1})`);
+      g.addColorStop(1, `rgba(${R},${G2},${B},0)`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+    });
+    ctx.restore();
+  }
+
+  /* ripples */
+  if (inst.ripples && !RM && w.listen > .01) {
+    ctx.save(); ctx.lineWidth = Math.max(1, D * .006);
+    for (let k = 0; k < 3; k++) {
+      const p = (T * .55 + k / 3) % 1;
+      const a = w.listen * (.10 + .42 * amp) * Math.pow(1 - p, 1.6);
+      ctx.strokeStyle = k % 2 ? `rgba(0,212,255,${a})` : `rgba(160,140,255,${a})`;
+      ctx.beginPath(); ctx.arc(cx, cy, r * (1.02 + .48 * p), 0, TAU); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* orb body */
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.clip();
+  let g = ctx.createRadialGradient(cx, cy - r * .2, 0, cx, cy, r);
+  g.addColorStop(0, "#150d33"); g.addColorStop(1, "#06050f");
+  ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+  ctx.globalCompositeOperation = "screen";
+  const swell = la + .08 * breath;
+  const ga = 1;
+  for (const b of BLOBS) {
+    const ang = b.p + T * b.w + G.RT;
+    const dist = r * b.d * 1.5 * (1 + .6 * Math.sin(T * b.v + b.p)) * (1 + .5 * la);
+    const x = cx + Math.cos(ang) * dist, y = cy + Math.sin(ang) * dist * .92;
+    const R = r * b.r * 1.35 * (1 + .45 * swell);
+    const c = b.c, a = b.a * ga;
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, R);
+    gr.addColorStop(0, `rgba(${c},${a})`);
+    gr.addColorStop(.3, `rgba(${c},${a * .72})`);
+    gr.addColorStop(.6, `rgba(${c},${a * .26})`);
+    gr.addColorStop(.85, `rgba(${c},${a * .06})`);
+    gr.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = gr; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  /* backing shade so the glyph always reads */
+  g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * .6);
+  g.addColorStop(0, "rgba(6,4,22,.36)"); g.addColorStop(1, "rgba(6,4,22,0)");
+  ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+  /* inner shadow */
+  g = ctx.createRadialGradient(cx, cy, r * .52, cx, cy, r);
+  g.addColorStop(0, "rgba(2,2,14,0)"); g.addColorStop(.75, "rgba(2,2,14,.28)"); g.addColorStop(1, "rgba(2,2,14,.66)");
+  ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+  /* grain / dither */
+  if (big) { ctx.globalAlpha = .05; ctx.globalCompositeOperation = "overlay";
+    ctx.fillStyle = ctx.createPattern(grain, "repeat"); ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; }
+
+  /* specular */
+  g = ctx.createLinearGradient(0, cy - r * .98, 0, cy - r * .58);
+  g.addColorStop(0, "rgba(255,255,255,.26)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx, cy - r * .78, r * .62, r * .2, 0, 0, TAU); ctx.fill();
+  /* bounce light at the bottom */
+  g = ctx.createRadialGradient(cx, cy + r * 1.02, 0, cx, cy + r * 1.02, r * .7);
+  g.addColorStop(0, "rgba(120,230,255,.34)"); g.addColorStop(1, "rgba(120,230,255,0)");
+  ctx.fillStyle = g; ctx.fillRect(cx - r, cy, r * 2, r);
+  ctx.restore();
+
+  /* glass rim */
+  const lw = Math.max(1, D * .0075);
+  g = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+  g.addColorStop(0, "rgba(255,255,255,.8)"); g.addColorStop(.3, "rgba(255,255,255,.16)");
+  g.addColorStop(.7, "rgba(170,200,255,.12)"); g.addColorStop(1, "rgba(120,230,255,.55)");
+  ctx.strokeStyle = g; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.arc(cx, cy, r - lw / 2, 0, TAU); ctx.stroke();
+
+  /* orbiting arc */
+  if (!RM && w.trans > .01) {
+    ctx.save(); ctx.lineCap = "round"; ctx.lineWidth = Math.max(1, D * .012);
+    if (big) { ctx.shadowColor = "rgba(0,212,255,.9)"; ctx.shadowBlur = D * .03; }
+    const N = 28, tail = 1.1, rr = r - ctx.lineWidth * .9;
+    for (let i = 0; i < N; i++) {
+      const a1 = G.arc - tail * i / N, a0 = G.arc - tail * (i + 1.4) / N;
+      ctx.strokeStyle = `rgba(215,245,255,${w.trans * Math.pow(1 - i / N, 1.5) * .95})`;
+      ctx.beginPath(); ctx.arc(cx, cy, rr, a0, a1); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawGlyph(ctx, cx, cy, D, r, "255,255,255", big, inst.fixed);
+}
+
+function glyphMetrics(D) {
+  const bw = D * (D <= 20 ? .09 : D <= 40 ? .08 : .075);
+  return { bw, pitch: bw * (D <= 40 ? 1.95 : 1.9), maxH: D * .46 };
+}
+
+function drawGlyph(ctx, cx, cy, D, r, rgb, glow, fixed) {
+  const w = fixed ? { idle: 0, listen: 1, trans: 0 } : G.w, T = fixed ? 1.9 : G.T, amp = fixed ? .62 : G.amp;
+  const { bw, pitch, maxH } = glyphMetrics(D);
+  const shape = [.6, .85, 1, .85, .6], idleH = [1, 1.6, 2.3, 1.6, 1];
+  ctx.save();
+  if (glow) { ctx.shadowColor = `rgba(${rgb},.45)`; ctx.shadowBlur = D * .035; }
+  for (let i = 0; i < 5; i++) {
+    const wave = .5 + .5 * Math.sin(T * 9 + i * 1.3 + 1.7 * Math.sin(T * 2.3 + i));
+    const v = clamp(.1 + amp * shape[i] * (.3 + .7 * wave) * 1.15);
+    const hL = bw + (maxH - bw) * v;
+    const hI = bw * idleH[i] * (1 + (RM ? 0 : .05 * Math.sin(G.t * TAU / 6 + i * .5)));
+    const outer = i === 0 || i === 4;
+    const wT = bw * 1.25;
+    const h = w.idle * hI + w.listen * hL + w.trans * wT;
+    const wd = lerp(bw, wT, w.trans) * (outer ? 1 - w.trans * .6 : 1);
+    const x = (i - 2) * pitch * (outer ? 1 - w.trans * .35 : 1 - w.trans * .05);
+    const y = w.trans * Math.sin(T * 6 - i * 1.1) * D * .055;
+    const alpha = outer ? 1 - w.trans : 1;
+    if (alpha < .01) continue;
+    const bx = cx + x - wd / 2, by = cy + y - h / 2;
+    ctx.fillStyle = `rgba(${rgb},${.95 * alpha})`;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, wd, h, Math.min(wd, h) / 2); else ctx.rect(bx, by, wd, h);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMono(inst, cx, cy, r, D) {
+  const { ctx } = inst, col = inst.mono, w = G.w;
+  const lw = Math.max(1.2, D * .07);
+  ctx.strokeStyle = col; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.arc(cx, cy, D / 2 - lw / 2 - .25, 0, TAU); ctx.stroke();
+  /* thin arc accent for transcribing */
+  const rgb = col === "#ffffff" ? "255,255,255" : "17,17,20";
+  drawGlyph(ctx, cx, cy, D * .9, r, rgb, false);
+}
+
+/* ---------- simulation tick ---------- */
+function tick(dt, t) {
+  const k = 1 - Math.exp(-dt / (RM ? .05 : .16));
+  const w = G.w;
+  for (const key of ["idle", "listen", "trans"]) w[key] += ((key === cur ? 1 : 0) - w[key]) * k;
+  const rs = RM ? .2 : 1;
+  const speed = (w.idle * .35 + w.listen * (1.1 + 1.3 * G.amp) + w.trans * .85) * rs;
+  G.T += dt * speed;
+  G.RT += dt * w.trans * .9 * rs;
+  G.arc += dt * 3.8 * w.trans;
+  G.t = t;
+  const n = .5 + .5 * (Math.sin(t * 3.1) * .5 + Math.sin(t * 5.3 + 1.3) * .3 + Math.sin(t * 1.7 + .4) * .2);
+  const env = smooth(-.3, .6, Math.sin(t * 1.15) + .55 * Math.sin(t * 2.35 + 1));
+  let tgt = w.listen * (.1 + .9 * env * (.5 + .5 * n)) + w.trans * .12 + w.idle * (.03 + .01 * n);
+  if (RM) tgt *= .5;
+  G.amp += (tgt - G.amp) * (1 - Math.exp(-dt / (tgt > G.amp ? .05 : .16)));
+}
+
+/* ---------- state control ---------- */
+const seg = document.getElementById("seg"), btns = [...seg.querySelectorAll("button")];
+const roState = document.getElementById("roState"), roMeter = document.getElementById("roMeter");
+const MODES = ["idle", "listen", "trans", "auto"];
+
+function setMode(m, focus) {
+  mode = m;
+  btns.forEach(b => { const on = b.dataset.s === m; b.setAttribute("aria-checked", on); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
+  seg.style.setProperty("--i", MODES.indexOf(m));
+  if (m === "auto") { seqI = SEQ.findIndex(s => s[0] === cur); if (seqI < 0) seqI = 0; seqT = performance.now(); }
+  else enter(m);
+}
+btns.forEach(b => b.addEventListener("click", () => setMode(b.dataset.s)));
+seg.addEventListener("keydown", e => {
+  const i = MODES.indexOf(mode);
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); setMode(MODES[(i + 1) % 4], true); }
+  if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); setMode(MODES[(i + 3) % 4], true); }
+});
+
+/* ---------- caption / pill / editor ---------- */
+const PHRASES = [
+  "Move the launch review to Thursday and loop in design.",
+  "Remind me to send the revised pricing deck before noon.",
+  "The new onboarding flow cuts setup time nearly in half.",
+  "Add a note that the beta waitlist passed four thousand.",
+];
+let phraseI = -1, listenT0 = 0, shownText = null, capTarget = 0, capW = 0;
+const pill = document.getElementById("pill"), cap = document.getElementById("cap"), capIn = document.getElementById("capIn");
+const added = document.getElementById("added"), caret = document.getElementById("caret");
+
+function enter(next) {
+  if (next === cur) return;
+  const prev = cur;
+  if (prev === "trans" && phraseI >= 0) commit(PHRASES[phraseI % PHRASES.length]);
+  if (next !== "idle" && (prev === "idle" || prev === "trans")) phraseI++;
+  if (next === "listen") listenT0 = performance.now();
+  cur = next;
+}
+function commit(text) {
+  const p = document.createElement("p"); p.className = "new"; p.textContent = text;
+  added.appendChild(p);
+  while (added.children.length > 2) added.removeChild(added.firstChild);
+}
+function captionText(now) {
+  if (cur === "idle" || phraseI < 0) return "";
+  const full = PHRASES[phraseI % PHRASES.length];
+  if (cur === "trans" || RM) return full;
+  return full.slice(0, Math.floor((now - listenT0 - 350) / 55));
+}
+function updateCaption(dt, now) {
+  const txt = captionText(now);
+  if (txt !== shownText) {
+    shownText = txt;
+    capIn.textContent = txt;
+    const maxW = Math.min(460, pill.parentElement.clientWidth - 110);
+    const iw = txt ? capIn.offsetWidth : 0;
+    capTarget = Math.min(iw, maxW);
+    capIn.style.transform = `translateX(${-(iw - capTarget)}px)`;
+    cap.classList.toggle("clip", iw > maxW);
+  }
+  capIn.classList.toggle("shim", cur === "trans" && !RM);
+  caret.hidden = cur !== "listen";
+  capW += (capTarget - capW) * (1 - Math.exp(-dt / (RM ? .02 : .12)));
+  if (Math.abs(capTarget - capW) < .3) capW = capTarget;
+  cap.style.width = capW.toFixed(1) + "px";
+  pill.style.paddingRight = (7 + 4 * clamp(capW / 24)).toFixed(1) + "px";
+  cap.style.marginLeft = (6 * clamp(capW / 24)).toFixed(1) + "px";
+}
+
+/* ---------- main loop ---------- */
+let last = performance.now();
+function frame(nowMs) {
+  const dt = Math.min(.05, (nowMs - last) / 1000); last = nowMs;
+  if (mode === "auto" && !RM && nowMs - seqT >= SEQ[seqI][1]) {
+    seqI = (seqI + 1) % SEQ.length; seqT = nowMs; enter(SEQ[seqI][0]);
+  }
+  tick(dt, nowMs / 1000);
+  for (const i of insts) draw(i);
+  updateCaption(dt, nowMs);
+  roState.textContent = NAMES[cur] + (mode === "auto" ? " (auto)" : "");
+  roMeter.style.transform = `scaleX(${clamp(G.amp * G.w.listen + G.w.trans * .1 + .02).toFixed(3)})`;
+  requestAnimationFrame(frame);
+}
+setMode(mode);
+if (mode === "auto") { seqI = 0; seqT = performance.now(); }
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
