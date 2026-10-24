@@ -83,7 +83,7 @@ jobs:
         env:
           PACKAGE_RELEASE: '1'
         run: |
-          powershell -ExecutionPolicy Bypass -File scripts\bundle_windows.ps1 -Package
+          pwsh -ExecutionPolicy Bypass -File scripts/bundle_windows.ps1 -Package
 
       - name: Upload Windows build artifacts
         uses: actions/upload-artifact@v4

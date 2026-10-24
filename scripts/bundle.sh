@@ -10,10 +10,7 @@ VERSION="${VERSION:-1.0.0}"
 VERSION="${VERSION#v}"
 
 mkdir -p zig-out/bin
-if command -v zig >/dev/null 2>&1; then
-    zig build -Doptimize=ReleaseSafe
-else
-    # Try building a universal binary (arm64 + x86_64) first; fall back to native arch.
+if command -v clang >/dev/null 2>&1; then
     if clang -O2 -arch arm64 -arch x86_64 -fobjc-arc -I src \
         src/main.c src/orb_math.c src/shim.m src/orb.m src/orbview.m \
         -framework Cocoa -framework Speech -framework AVFoundation \
@@ -26,7 +23,13 @@ else
             -framework Cocoa -framework Speech -framework AVFoundation \
             -framework Carbon -framework ApplicationServices -framework QuartzCore \
             -o zig-out/bin/free-voice-transcribe
+        echo "Built native macOS binary with clang"
     fi
+elif command -v zig >/dev/null 2>&1; then
+    zig build -Doptimize=ReleaseSafe
+else
+    echo "Error: neither clang nor zig compiler found" >&2
+    exit 1
 fi
 
 if [ ! -f resources/AppIcon.icns ] && [ -x scripts/make_icon.sh ]; then

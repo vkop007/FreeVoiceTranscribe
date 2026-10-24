@@ -430,7 +430,9 @@ bool sa_begin_listening(void) {
         }
         req = [SFSpeechAudioBufferRecognitionRequest new];
         req.shouldReportPartialResults = YES;
-        req.addsPunctuation = YES;
+        if (@available(macOS 13.0, *)) {
+            req.addsPunctuation = YES;
+        }
         req.taskHint = SFSpeechRecognitionTaskHintDictation;
         if (terms.count) req.contextualStrings = terms;
         if (g_recognizer.supportsOnDeviceRecognition) req.requiresOnDeviceRecognition = YES;

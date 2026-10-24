@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{ .name = "free-voice-transcribe", .root_module = mod });
     if (os_tag == .windows) {
-        exe.subsystem = .Windows;
+        exe.subsystem = .windows;
         const install_script = b.addInstallFileWithDir(
             b.path("scripts/copilot_bridge.ps1"),
             .bin,
