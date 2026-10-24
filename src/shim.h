@@ -1,6 +1,7 @@
 #ifndef SHIM_H
 #define SHIM_H
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct {
@@ -12,11 +13,11 @@ typedef struct {
 
 enum { SA_IDLE = 0, SA_LISTENING = 1, SA_TRANSCRIBING = 2 };
 
-// Sets up the menu bar item, hotkey and permissions, then runs the app loop. Never returns.
+// Sets up the menu bar / system tray item, hotkey and permissions, then runs the app loop. Never returns.
 void sa_run(const sa_callbacks *cb);
 bool sa_begin_listening(void);
 void sa_stop_listening(void);
-// Drives the animated orb (menu bar icon + floating pill). Idle hides the pill.
+// Drives the animated orb (menu bar / tray icon + floating pill). Idle hides the pill.
 void sa_set_state(int state);
 // Live caption shown in the pill; empty string shows the state's default label.
 void sa_overlay_set_text(const char *text);
@@ -41,6 +42,12 @@ void sa_pasteboard_set(const char *text);
 // Saves the current clipboard, then puts `text` on it.
 void sa_pasteboard_stash_and_set(const char *text);
 void sa_pasteboard_restore(void);
-// Prompts for Accessibility access (needed to send Cmd+V) if not yet granted.
+// Prompts for Accessibility access (needed to send Cmd+V on macOS; always true on Windows).
 bool sa_accessibility_trusted(bool prompt);
+// Returns true if any physical modifier key (Cmd/Win, Shift, Ctrl, Alt/Option) is currently held.
+bool sa_modifiers_held(void);
+// Synthesizes a Copy shortcut (Cmd+C on macOS, Ctrl+C on Windows).
+void sa_send_copy(void);
+// Synthesizes a Paste shortcut (Cmd+V on macOS, Ctrl+V on Windows).
+void sa_send_paste(void);
 #endif

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="EVENT HORIZON — An immersive Black Hole showcase. Cross the point of no return.">
+<title>EVENT HORIZON — Black Hole</title>
+<link rel="stylesheet" href="css/hero.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav__inner">
+    <a class="nav__logo" href="index.html" aria-label="EVENT HORIZON home">
+      <span class="nav__mark" aria-hidden="true"></span>
+      <span class="nav__word">
+        <span class="nav__title">EVENT HORIZON</span>
+        <span class="nav__sub">Black Hole</span>
+      </span>
+    </a>
+    <div class="nav__links" role="list">
+      <a role="listitem" href="#overview">Overview</a>
+      <a role="listitem" href="explorer.html">Explorer</a>
+      <a role="listitem" href="explorer.html" class="nav__cta">Launch Explorer</a>
+    </div>
+    <a class="nav__menu" href="explorer.html" aria-label="Open explorer">↗</a>
+  </div>
+</nav>
+
+<main id="main">
+  <!-- HERO -->
+  <section class="hero" aria-labelledby="hero-title">
+    <canvas id="blackhole-canvas" class="hero__canvas" aria-hidden="true"></canvas>
+    <!-- CSS fallback glow for when canvas is paused / reduced-motion -->
+    <div class="hero__glow" aria-hidden="true"></div>
+    <div class="hero__vignette" aria-hidden="true"></div>
+
+    <div class="hero__content">
+      <p class="hero__eyebrow"><span class="hero__dot" aria-hidden="true"></span> Showcase — General Relativity · Sgr A* Inspired</p>
+      <h1 id="hero-title" class="hero__title">Beyond the<br><span class="hero__accent">Event Horizon</span></h1>
+      <p class="hero__tagline">Light bends. Time dilates. Gravity becomes geometry. Step to the edge of the universe’s most extreme laboratory — where nothing escapes, and everything is revealed.</p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="#overview" aria-label="Enter the void, scroll to overview">Enter the Void <span aria-hidden="true">→</span></a>
+        <a class="btn btn--ghost" href="explorer.html">Open Explorer</a>
+      </div>
+      <dl class="hero__stats" aria-label="Key figures">
+        <div><dt>Mass</dt><dd>~4.3M ☉</dd></div>
+        <div><dt>Distance</dt><dd>26,673 ly</dd></div>
+        <div><dt>Shadow</dt><dd>~52 μas</dd></div>
+      </dl>
+    </div>
+
+    <a class="hero__scroll" href="#overview" aria-label="Scroll to overview">
+      <span>Scroll</span>
+      <span class="hero__scroll-line" aria-hidden="true"></span>
+    </a>
+  </section>
+
+  <!-- OVERVIEW -->
+  <section id="overview" class="overview">
+    <div class="overview__inner">
+      <header class="overview__head">
+        <p class="kicker">Overview</p>
+        <h2>What you are about to witness</h2>
+        <p class="overview__lead">A real-time, dependency-free rendering — pure Canvas 2D &amp; CSS — interpreting the sketch’s rounded “Black Hole” box as a physics-inspired viewport. No images. No libraries.</p>
+      </header>
+
+      <div class="cards">
+        <article class="card">
+          <div class="card__icon" aria-hidden="true">◉</div>
+          <h3>Event Horizon</h3>
+          <p>The boundary where escape velocity exceeds the speed of light. Rendered as absolute black — 0% reflectance — with a photon-ring caustic at 1.5× Schwarzschild radius.</p>
+          <span class="card__meta">r<sub>s</sub> = 2GM / c²</span>
+        </article>
+        <article class="card">
+          <div class="card__icon" aria-hidden="true">◎</div>
+          <h3>Accretion Disk</h3>
+          <p>Superheated plasma warped by gravitational lensing. The far side lifts above the shadow; Doppler beaming brightens the approaching limb — orange to cyan heat gradient.</p>
+          <span class="card__meta">Beaming · Red/Blue shift</span>
+        </article>
+        <article class="card">
+          <div class="card__icon" aria-hidden="true">✦</div>
+          <h3>Starfield &amp; Lensing</h3>
+          <p>Twinkling background stars with parallax drift. Their light bends near the mass — Einstein rings and subtle chromospheric fringing at the horizon edge.</p>
+          <span class="card__meta">Parallax · Twinkle</span>
+        </article>
+      </div>
+
+      <div class="overview__cta-row">
+        <a class="btn btn--primary" href="explorer.html">Launch Interactive Explorer <span aria-hidden="true">↗</span></a>
+        <p class="overview__hint">Explorer lets you scrub mass, spin &amp; viewing angle. Built separately — this hero stays standalone.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="strip" aria-label="Quote">
+    <blockquote>
+      <p>“The black hole teaches us that space can be crumpled like paper — and time, slowed to a halt.”</p>
+      <footer>— Kip Thorne, interpreting the sketch’s single perfect circle</footer>
+    </blockquote>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__brand">
+      <strong>EVENT HORIZON</strong>
+      <span>Black Hole — an immersive web showcase. Sketch → viewport.</span>
+    </div>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="#overview">Overview</a>
+      <a href="explorer.html">Explorer</a>
+      <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">Back to top ↑</a>
+    </nav>
+  </div>
+  <p class="footer__copy">Built with Canvas 2D only — open via <code>file://</code>. No trackers, no dependencies. Respects <code>prefers-reduced-motion</code>.</p>
+</footer>
+
+<script src="js/blackhole.js"></script>
+</body>
+</html>

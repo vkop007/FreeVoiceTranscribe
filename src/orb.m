@@ -1,79 +1,6 @@
 #import "orb.h"
 #include <math.h>
 
-static const double kBlobColors[6][3] = {
-    {0.486, 0.361, 1.0},   // violet  #7c5cff
-    {0.0, 0.831, 1.0},     // cyan    #00d4ff
-    {1.0, 0.361, 0.659},   // magenta #ff5ca8
-    {1.0, 0.706, 0.329},   // amber   #ffb454
-    {0.23, 0.29, 1.0},     // blue
-    {0.62, 0.40, 1.0},     // violet 2
-};
-
-void orb_init(OrbAnim *a) {
-    *a = (OrbAnim){.w = {1, 0, 0}};
-}
-
-static double approach(double dt, double tau) { return 1.0 - exp(-dt / tau); }
-
-void orb_tick(OrbAnim *a, double dt, int target, double raw) {
-    if (dt > 0.1) dt = 0.1;
-    a->target = target;
-    double k = approach(dt, 0.16);
-    for (int i = 0; i < 3; i++) a->w[i] += ((i == target ? 1.0 : 0.0) - a->w[i]) * k;
-    double want = target == 1 ? raw : 0;
-    a->level += (want - a->level) * approach(dt, want > a->level ? 0.05 : 0.16);
-    double speed = a->w[0] * 0.35 + a->w[1] * (1.1 + 1.3 * a->level) + a->w[2] * 0.85;
-    a->blob_t += dt * speed;
-    a->clock += dt;
-}
-
-const double *orb_blob_color(int i) { return kBlobColors[i]; }
-
-void orb_blob(const OrbAnim *a, int i, double r, double *dx, double *dy, double *radius) {
-    double t = a->blob_t;
-    double ang = t * (0.6 + 0.17 * i) + i * 1.7;
-    double orbit = r * 0.42 * (0.6 + 0.4 * sin(t * 0.5 + i));
-    *dx = cos(ang) * orbit;
-    *dy = sin(ang * 1.13 + i) * orbit;
-    *radius = r * (0.62 + 0.5 * a->level * a->w[1] + 0.05 * sin(t * 1.3 + i * 2));
-}
-
-void orb_bar(const OrbAnim *a, int i, double r, bool small, double *w, double *h, double *dy, double *alpha) {
-    static const double env[5] = {0.6, 0.85, 1.0, 0.85, 0.6};
-    double bw = small ? r * 0.2 : r * 0.13;
-    double clk = a->clock;
-    double wi = 0, hi = 0, yi = 0, ai = 0;
-    // idle
-    double h0 = r * (small ? 0.18 : 0.12);
-    wi += a->w[0] * (small ? bw : h0); hi += a->w[0] * h0; ai += a->w[0] * 0.75;
-    // listening
-    double osc = 0.5 + 0.5 * sin(clk * 7.0 + i * 1.3);
-    double h1 = r * (0.14 + 0.72 * a->level * (0.35 + 0.65 * osc) * env[i]);
-    wi += a->w[1] * bw; hi += a->w[1] * h1; ai += a->w[1] * 0.96;
-    // transcribing
-    double dot = r * (small ? 0.2 : 0.17);
-    bool is_dot = i >= 1 && i <= 3;
-    wi += a->w[2] * (is_dot ? dot : bw * 0.4);
-    hi += a->w[2] * (is_dot ? dot : bw * 0.4);
-    yi += a->w[2] * (is_dot ? sin(clk * 6.0 - i * 0.9) * r * 0.16 : 0);
-    ai += a->w[2] * (is_dot ? 0.95 : 0);
-    *w = fmax(wi, 0.5);
-    *h = fmax(hi, *w);
-    *dy = yi;
-    *alpha = ai;
-}
-
-double orb_breathe(const OrbAnim *a) { return 1.0 + 0.016 * sin(a->clock * 2 * M_PI / 6.0); }
-
-double orb_bloom_alpha(const OrbAnim *a) { return 0.22 + 0.2 * a->w[1] * (0.4 + a->level) + 0.08 * a->w[2]; }
-
-void orb_ripple(const OrbAnim *a, int k, double *progress, double *alpha) {
-    double p = fmod(a->clock / 1.8 + k / 3.0, 1.0);
-    *progress = p;
-    *alpha = pow(1 - p, 1.6) * 0.35 * a->w[1] * (0.4 + a->level);
-}
-
 static CGGradientRef radial_gradient(CGColorSpaceRef cs, const double c[3], double a0, double a1) {
     CGFloat comps[8] = {c[0], c[1], c[2], a0, c[0], c[1], c[2], a1};
     CGFloat locs[2] = {0, 1};
@@ -90,7 +17,7 @@ void orb_draw(const OrbAnim *a, CGContextRef ctx, CGRect bounds, bool small) {
     CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
     CGPoint c = CGPointMake(CGRectGetMidX(bounds), CGRectGetMidY(bounds));
     double r = small ? bounds.size.width / 2 - 1.0 : bounds.size.width * 0.32;
-    double lvl = a->level, t = a->blob_t, clk = a->clock;
+    double clk = a->clock;
     r *= orb_breathe(a);
     static const double black[3] = {0, 0, 0}, white[3] = {1, 1, 1}, cyan[3] = {0.0, 0.831, 1.0};
 
@@ -100,8 +27,8 @@ void orb_draw(const OrbAnim *a, CGContextRef ctx, CGRect bounds, bool small) {
     // Outer bloom.
     if (!small) {
         double glow = orb_bloom_alpha(a);
-        fill_radial(ctx, cs, c, r * 1.55, kBlobColors[0], glow, 0);
-        fill_radial(ctx, cs, c, r * 1.35, kBlobColors[1], glow * 0.6, 0);
+        fill_radial(ctx, cs, c, r * 1.55, orb_blob_color(0), glow, 0);
+        fill_radial(ctx, cs, c, r * 1.35, orb_blob_color(1), glow * 0.6, 0);
     }
 
     // Everything inside the circle.
@@ -115,7 +42,7 @@ void orb_draw(const OrbAnim *a, CGContextRef ctx, CGRect bounds, bool small) {
     for (int i = 0; i < 6; i++) {
         double dx, dy, br;
         orb_blob(a, i, r, &dx, &dy, &br);
-        fill_radial(ctx, cs, CGPointMake(c.x + dx, c.y + dy), br, kBlobColors[i], 0.85, 0);
+        fill_radial(ctx, cs, CGPointMake(c.x + dx, c.y + dy), br, orb_blob_color(i), 0.85, 0);
     }
     CGContextSetBlendMode(ctx, kCGBlendModeNormal);
 

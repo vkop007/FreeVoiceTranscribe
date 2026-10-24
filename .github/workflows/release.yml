@@ -1,0 +1,163 @@
+name: Build & Release (macOS & Windows)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag to publish or update (e.g., v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS App (.dmg & .zip)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.14.0
+        continue-on-error: true
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            RAW_VER="${{ github.event.inputs.tag_name }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            RAW_VER="${GITHUB_REF#refs/tags/}"
+          else
+            RAW_VER="1.0.${{ github.run_number }}"
+          fi
+          CLEAN_VER="${RAW_VER#v}"
+          if [[ "$CLEAN_VER" == "latest" ]]; then
+            CLEAN_VER="1.0.${{ github.run_number }}"
+          fi
+          echo "version=$CLEAN_VER" >> "$GITHUB_OUTPUT"
+
+      - name: Build and package macOS app bundle
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          PACKAGE_RELEASE: '1'
+        run: |
+          chmod +x scripts/bundle.sh scripts/make_icon.sh
+          ./scripts/bundle.sh --package
+
+      - name: Upload macOS build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreeVoiceTranscribe-macOS
+          path: |
+            zig-out/FreeVoiceTranscribe-macOS.*
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows App (x64 & ARM64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.14.0
+        continue-on-error: true
+
+      - name: Build and package Windows app bundle
+        shell: pwsh
+        env:
+          PACKAGE_RELEASE: '1'
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts\bundle_windows.ps1 -Package
+
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreeVoiceTranscribe-Windows
+          path: |
+            zig-out/FreeVoiceTranscribe-Windows-*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [build-macos, build-windows]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Determine release tag and title
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="v1.0.0"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "title=FreeVoiceTranscribe $TAG (macOS & Windows)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate SHA-256 checksums and release notes
+        run: |
+          cd release-assets
+          sha256sum FreeVoiceTranscribe-* > SHA256SUMS.txt
+          cat << 'EOF' > RELEASE_NOTES.md
+          ## Download FreeVoiceTranscribe
+
+          | Platform | Architecture | Download | Description |
+          | :--- | :--- | :--- | :--- |
+          | **macOS** | Apple Silicon & Intel | [**FreeVoiceTranscribe-macOS.dmg**](../../releases/latest/download/FreeVoiceTranscribe-macOS.dmg) | Drag-and-drop macOS Disk Image installer (`FreeVoiceTranscribe.app`) |
+          | **macOS** | Apple Silicon & Intel | [**FreeVoiceTranscribe-macOS.zip**](../../releases/latest/download/FreeVoiceTranscribe-macOS.zip) | Zipped `FreeVoiceTranscribe.app` bundle |
+          | **Windows** | 64-bit (`x86_64`) | [**FreeVoiceTranscribe-Windows-x64.zip**](../../releases/latest/download/FreeVoiceTranscribe-Windows-x64.zip) | Full Windows bundle (`FreeVoiceTranscribe.exe` + `copilot_bridge.ps1` + optional `libenhance.dll`) |
+          | **Windows** | 64-bit (`x86_64`) | [**FreeVoiceTranscribe-Windows-x64.exe**](../../releases/latest/download/FreeVoiceTranscribe-Windows-x64.exe) | Standalone Windows x64 executable |
+          | **Windows** | ARM64 (Copilot+ PCs) | [**FreeVoiceTranscribe-Windows-arm64.zip**](../../releases/latest/download/FreeVoiceTranscribe-Windows-arm64.zip) | Full Windows ARM64 bundle for Snapdragon / Copilot+ PCs |
+          | **Windows** | ARM64 (Copilot+ PCs) | [**FreeVoiceTranscribe-Windows-arm64.exe**](../../releases/latest/download/FreeVoiceTranscribe-Windows-arm64.exe) | Standalone Windows ARM64 executable |
+
+          ### Quick Start
+          - **macOS**: Open `FreeVoiceTranscribe-macOS.dmg` (or extract `FreeVoiceTranscribe-macOS.zip`), drag **FreeVoiceTranscribe.app** to **Applications**, and launch it. Grant **Microphone**, **Speech Recognition**, and **Accessibility** permissions when prompted. Hold `Cmd+Shift+R` to dictate, `Cmd+Shift+E` to dictate + enhance, or `Cmd+Shift+T` to rewrite selected text.
+          - **Windows**: Extract `FreeVoiceTranscribe-Windows-x64.zip` (or `FreeVoiceTranscribe-Windows-arm64.zip` on ARM64 Copilot+ PCs) and run **FreeVoiceTranscribe.exe**. Hold `Ctrl+Shift+R` to dictate, `Ctrl+Shift+E` to dictate + enhance, or `Ctrl+Shift+T` to rewrite selected text.
+
+          ### SHA-256 Checksums
+          ```text
+          EOF
+          cat SHA256SUMS.txt >> RELEASE_NOTES.md
+          echo '```' >> RELEASE_NOTES.md
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.title }}
+          body_path: release-assets/RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          make_latest: 'true'
+          overwrite: true
+          files: |
+            release-assets/FreeVoiceTranscribe-*
+            release-assets/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

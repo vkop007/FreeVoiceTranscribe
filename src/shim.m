@@ -316,6 +316,23 @@ bool sa_accessibility_trusted(bool prompt) {
     return AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)opts);
 }
 
+bool sa_modifiers_held(void) {
+    const CGEventFlags mask = kCGEventFlagMaskCommand | kCGEventFlagMaskShift | kCGEventFlagMaskControl | kCGEventFlagMaskAlternate;
+    return (CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState) & mask) != 0;
+}
+
+static void send_cmd_key(CGKeyCode key) {
+    for (int i = 0; i < 2; i++) {
+        CGEventRef ev = CGEventCreateKeyboardEvent(NULL, key, i == 0);
+        CGEventSetFlags(ev, kCGEventFlagMaskCommand);
+        CGEventPost(kCGHIDEventTap, ev);
+        CFRelease(ev);
+    }
+}
+
+void sa_send_copy(void) { send_cmd_key(kVK_ANSI_C); }
+void sa_send_paste(void) { send_cmd_key(kVK_ANSI_V); }
+
 void sa_pasteboard_set(const char *text) {
     NSPasteboard *pb = NSPasteboard.generalPasteboard;
     [pb clearContents];
@@ -366,7 +383,7 @@ void sa_pasteboard_restore(void) {
 // One term per line (names, jargon) the recognizer should favour. Edited from the menu bar.
 static NSString *vocabulary_path(void) {
     NSString *dir = [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES).firstObject
-        stringByAppendingPathComponent:@"SiriAssistant"];
+        stringByAppendingPathComponent:@"FreeVoiceTranscribe"];
     [NSFileManager.defaultManager createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
     return [dir stringByAppendingPathComponent:@"vocabulary.txt"];
 }

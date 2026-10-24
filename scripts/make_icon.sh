@@ -3,7 +3,7 @@
 set -e
 cd "$(dirname "$0")/.."
 TMP=$(mktemp -d)
-clang -fobjc-arc -framework Cocoa -I src scripts/make_icon.m src/orb.m -o "$TMP/make_icon"
+clang -fobjc-arc -framework Cocoa -I src scripts/make_icon.m src/orb.m src/orb_math.c -o "$TMP/make_icon"
 "$TMP/make_icon" "$TMP/AppIcon.iconset"
 iconutil -c icns "$TMP/AppIcon.iconset" -o resources/AppIcon.icns
 rm -rf "$TMP"

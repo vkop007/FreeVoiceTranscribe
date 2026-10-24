@@ -9,7 +9,7 @@ zig build
 zig build app
 ```
 
-Run the bundle with `open zig-out/SiriAssistant.app` and manually check the shortcut or menu flow affected by the change. Changes involving audio, permissions, pasteboard behavior, or Swift model availability should be tested on a real macOS installation.
+Run the bundle with `open zig-out/FreeVoiceTranscribe.app` and manually check the shortcut or menu flow affected by the change. Changes involving audio, permissions, pasteboard behavior, or Swift model availability should be tested on a real macOS installation.
 
 ## Project conventions
 

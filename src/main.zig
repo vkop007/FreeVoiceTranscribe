@@ -1,7 +1,8 @@
-//! Voice dictation: hold Cmd+Shift+R and speak; on release the transcript is pasted
-//! into whatever text field currently has focus. Cmd+Shift+E enhances it first; Cmd+Shift+T
-//! rewrites the selected text following your spoken instruction.
+//! Voice dictation: hold Cmd+Shift+R (macOS) / Ctrl+Shift+R (Windows) and speak; on release the
+//! transcript is pasted into whatever text field currently has focus. Cmd/Ctrl+Shift+E enhances it
+//! first; Cmd/Ctrl+Shift+T rewrites the selected text following your spoken instruction.
 const std = @import("std");
+const builtin = @import("builtin");
 
 const Callbacks = extern struct {
     on_hotkey: *const fn (c_int, bool) callconv(.c) void,
@@ -28,20 +29,10 @@ extern fn sa_pasteboard_stash_and_set(text: [*:0]const u8) void;
 extern fn sa_pasteboard_set(text: [*:0]const u8) void;
 extern fn sa_pasteboard_restore() void;
 extern fn sa_accessibility_trusted(prompt: bool) bool;
+extern fn sa_modifiers_held() bool;
+extern fn sa_send_copy() void;
+extern fn sa_send_paste() void;
 
-extern fn CGEventCreateKeyboardEvent(source: ?*anyopaque, keycode: u16, down: bool) ?*anyopaque;
-extern fn CGEventSetFlags(event: ?*anyopaque, flags: u64) void;
-extern fn CGEventPost(tap: u32, event: ?*anyopaque) void;
-extern fn CGEventSourceFlagsState(state_id: i32) u64;
-extern fn CFRelease(obj: ?*anyopaque) void;
-
-const kVK_ANSI_V: u16 = 9;
-const kVK_ANSI_C: u16 = 8;
-const kCGEventFlagMaskCommand: u64 = 0x100000;
-const kCGHIDEventTap: u32 = 0;
-const kCGEventSourceStateHIDSystemState: i32 = 1;
-/// Command, Shift, Control and Option.
-const modifier_mask: u64 = 0x100000 | 0x20000 | 0x40000 | 0x80000;
 /// Give up waiting for the hotkey's modifiers to be released after this many 40 ms polls.
 const max_modifier_waits = 25;
 
@@ -56,7 +47,7 @@ const quiet_timeout_ms = 6000;
 /// How long to wait for the on-device model before pasting the raw transcript.
 const enhance_timeout_ms = 8000;
 
-/// How long to wait for the app to put the selection on the clipboard after Cmd+C.
+/// How long to wait for the app to put the selection on the clipboard after Cmd/Ctrl+C.
 const copy_wait_ms = 180;
 /// How long to wait for the on-device model to rewrite the selection.
 const rewrite_timeout_ms = 12000;
@@ -181,7 +172,7 @@ fn finish() void {
     sa_enhance(@ptrCast(&text_buf), onEnhanced);
 }
 
-/// The transcript is the spoken instruction: grab the selection (Cmd+C), have the model apply
+/// The transcript is the spoken instruction: grab the selection (Cmd/Ctrl+C), have the model apply
 /// the instruction to it, then paste the result over the still-selected text.
 fn beginRewrite() void {
     state = .rewriting;
@@ -190,7 +181,7 @@ fn beginRewrite() void {
     @memcpy(instr_buf[0..instr_len], text_buf[0..instr_len]);
     instr_buf[instr_len] = 0;
     sa_overlay_set_text("Rewriting…");
-    if (!sa_accessibility_trusted(false)) return abortRewrite("Turn on Accessibility for SiriAssistant to rewrite text");
+    if (!sa_accessibility_trusted(false)) return abortRewrite("Turn on Accessibility for FreeVoiceTranscribe to rewrite text");
     sa_pasteboard_stash();
     sa_after_ms(rewrite_timeout_ms, onRewriteTimeout, epoch);
     copySelection(0);
@@ -198,12 +189,12 @@ fn beginRewrite() void {
 
 fn copySelection(waits: u32) callconv(.c) void {
     if (state != .rewriting) return;
-    if (modifiersHeld() and waits < max_modifier_waits) {
+    if (sa_modifiers_held() and waits < max_modifier_waits) {
         sa_after_ms(40, copySelection, waits + 1);
         return;
     }
     change_count0 = sa_pasteboard_change_count();
-    sendCmd(kVK_ANSI_C);
+    sa_send_copy();
     sa_after_ms(copy_wait_ms, onCopied, epoch);
 }
 
@@ -277,7 +268,7 @@ fn deliver() void {
         // Can't send Cmd+V without Accessibility access; leave the text on the clipboard instead.
         std.debug.print("Accessibility not granted: transcript copied to clipboard, paste it manually.\n", .{});
         sa_pasteboard_set(@ptrCast(&text_buf));
-        sa_overlay_notice("Turn on Accessibility for SiriAssistant to auto-paste");
+        sa_overlay_notice("Turn on Accessibility for FreeVoiceTranscribe to auto-paste");
         return;
     }
     sa_play(1);
@@ -285,14 +276,14 @@ fn deliver() void {
     tryPaste(0);
 }
 
-/// Cmd+V sent while the user still holds Cmd+Shift (the hotkey) would arrive as Cmd+Shift+V,
+/// Cmd/Ctrl+V sent while the user still holds the hotkey modifiers would arrive with extra modifiers,
 /// so wait until the physical modifiers are up.
 fn tryPaste(waits: u32) callconv(.c) void {
-    if (modifiersHeld() and waits < max_modifier_waits) {
+    if (sa_modifiers_held() and waits < max_modifier_waits) {
         sa_after_ms(40, tryPaste, waits + 1);
         return;
     }
-    sendCmd(kVK_ANSI_V);
+    sa_send_paste();
     sa_after_ms(restore_delay_ms, onRestore, 0);
 }
 
@@ -300,24 +291,12 @@ fn onRestore(_: u32) callconv(.c) void {
     sa_pasteboard_restore();
 }
 
-fn modifiersHeld() bool {
-    return CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState) & modifier_mask != 0;
-}
-
-fn sendCmd(key: u16) void {
-    inline for (.{ true, false }) |down| {
-        const ev = CGEventCreateKeyboardEvent(null, key, down);
-        CGEventSetFlags(ev, kCGEventFlagMaskCommand);
-        CGEventPost(kCGHIDEventTap, ev);
-        CFRelease(ev);
-    }
-}
-
 pub fn main() void {
     if (!sa_accessibility_trusted(true)) {
         std.debug.print("Grant Accessibility access so the transcript can be pasted (System Settings > Privacy & Security).\n", .{});
     }
-    std.debug.print("Ready. hold Cmd+Shift+R to dictate, Cmd+Shift+E to dictate + enhance; release to paste.\n", .{});
+    const mod_str = if (builtin.os.tag == .windows) "Ctrl+Shift" else "Cmd+Shift";
+    std.debug.print("Ready. hold {s}+R to dictate, {s}+E to dictate + enhance; release to paste.\n", .{ mod_str, mod_str });
     const cb: Callbacks = .{ .on_hotkey = onHotkey, .on_toggle = onToggle, .on_text = onText, .on_error = onError };
     sa_run(&cb);
 }
